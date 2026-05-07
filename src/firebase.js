@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
+import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
 
 // Check if Firebase config is provided via env variables
 const firebaseConfig = {
@@ -16,6 +17,7 @@ const isConfigured = isFirebaseConfigured;
 
 export const app = isConfigured ? initializeApp(firebaseConfig) : null;
 export const auth = isConfigured ? getAuth(app) : null;
+export const db = isConfigured ? getFirestore(app) : null;
 export const googleProvider = isConfigured ? new GoogleAuthProvider() : null;
 
 export const signInWithGoogle = async () => {
@@ -49,4 +51,55 @@ export const logoutUser = async () => {
     return signOut(auth);
   }
   return Promise.resolve();
+};
+
+// Firestore Helpers
+export const loadChatSessions = async (uid) => {
+  if (!db || !uid) return null;
+  try {
+    const docRef = doc(db, "users", uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data().sessions || null;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error loading chat sessions:", error);
+    return null;
+  }
+};
+
+export const saveChatSessions = async (uid, sessions) => {
+  if (!db || !uid) return;
+  try {
+    const docRef = doc(db, "users", uid);
+    await setDoc(docRef, { sessions }, { merge: true });
+  } catch (error) {
+    console.error("Error saving chat sessions:", error);
+  }
+};
+
+export const loadUserMemories = async (uid) => {
+  if (!db || !uid) return null;
+  try {
+    const docRef = doc(db, "users", uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data().memories || null;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error loading user memories:", error);
+    return null;
+  }
+};
+
+export const saveUserMemories = async (uid, memories) => {
+  if (!db || !uid) return;
+  try {
+    const docRef = doc(db, "users", uid);
+    await setDoc(docRef, { memories }, { merge: true });
+  } catch (error) {
+    console.error("Error saving user memories:", error);
+  }
 };

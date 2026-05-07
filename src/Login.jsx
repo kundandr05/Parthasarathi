@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { PeacockFeatherIcon } from './PeacockFeatherIcon';
 import { signInWithGoogle, isFirebaseConfigured } from './firebase';
 
@@ -113,10 +114,24 @@ export default function Login({ onLogin }) {
             )}
           </button>
         ) : (
-          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <motion.div 
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+            }}
+            style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}
+          >
             {accounts.map(acc => (
-              <button 
+              <motion.button 
                 key={acc.id}
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0 }
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 className="glass-panel-hover"
                 onClick={() => handleAccountSelect(acc)}
                 disabled={loadingId !== null}
@@ -125,7 +140,7 @@ export default function Login({ onLogin }) {
                   display: 'flex', alignItems: 'center', gap: '1rem',
                   background: 'var(--bg-glass-heavy)', border: '1px solid rgba(255,255,255,0.1)',
                   cursor: loadingId !== null ? 'not-allowed' : 'pointer',
-                  textAlign: 'left', transition: 'var(--transition)'
+                  textAlign: 'left', transition: 'box-shadow 0.3s'
                 }}
               >
                 <img src={acc.photoURL} alt={acc.name} style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-glass)' }} />
@@ -140,9 +155,9 @@ export default function Login({ onLogin }) {
                     <div className="typing-dot" style={{ background: 'var(--accent-primary)' }}></div>
                   </div>
                 )}
-              </button>
+              </motion.button>
             ))}
-          </div>
+          </motion.div>
         )}
       </div>
     </div>

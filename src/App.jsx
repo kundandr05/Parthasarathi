@@ -7,8 +7,32 @@ import Login from './Login';
 import UpgradePlan from './UpgradePlan';
 import UserProfile from './UserProfile';
 import Dashboard from './Dashboard';
-import { logoutUser } from './firebase';
+import { logoutUser, saveChatSessions, loadChatSessions, saveUserMemories, loadUserMemories } from './firebase';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import './App.css';
+
+const CodeBlock = ({ className, children }) => {
+  const match = /language-(\w+)/.exec(className || '');
+  return match ? (
+    <div style={{ position: 'relative', margin: '1rem 0', borderRadius: '0.5rem', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.3)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', background: '#2d2d2d', padding: '0.5rem 1rem', fontSize: '0.8rem', color: '#ccc', borderBottom: '1px solid #1e1e1e' }}>
+        <span>{match[1]}</span>
+        <button onClick={() => navigator.clipboard.writeText(String(children).replace(/\n$/, ''))} style={{ background: 'transparent', border: 'none', color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          Copy Code
+        </button>
+      </div>
+      <SyntaxHighlighter style={vscDarkPlus} language={match[1]} PreTag="div" customStyle={{ margin: 0, borderRadius: 0, background: '#1e1e1e' }}>
+        {String(children).replace(/\n$/, '')}
+      </SyntaxHighlighter>
+    </div>
+  ) : (
+    <code className={className} style={{ background: 'rgba(0,0,0,0.2)', padding: '0.2rem 0.4rem', borderRadius: '0.25rem', fontFamily: 'monospace' }}>
+      {children}
+    </code>
+  );
+};
 
 const BASE_PROMPT = `You are Parthasarathi, an intelligent and practical personal life management assistant.
 
@@ -111,7 +135,10 @@ function App() {
   }, [messages, isTyping]);
 
   useEffect(() => {
-    if (userProfile) localStorage.setItem(`chat_sessions_${userProfile.uid}`, JSON.stringify(sessions));
+    if (userProfile) {
+      localStorage.setItem(`chat_sessions_${userProfile.uid}`, JSON.stringify(sessions));
+      saveChatSessions(userProfile.uid, sessions);
+    }
   }, [sessions, userProfile]);
 
   useEffect(() => {
@@ -119,7 +146,10 @@ function App() {
   }, [activeSessionId, userProfile]);
   
   useEffect(() => {
-    if (userProfile) localStorage.setItem(`user_memories_${userProfile.uid}`, JSON.stringify(userMemories));
+    if (userProfile) {
+      localStorage.setItem(`user_memories_${userProfile.uid}`, JSON.stringify(userMemories));
+      saveUserMemories(userProfile.uid, userMemories);
+    }
   }, [userMemories, userProfile]);
 
   useEffect(() => {
@@ -215,18 +245,28 @@ function App() {
       reader.onerror = error => reject(error);
     });
   };
-  const handleLogin = (user) => {
+  const handleLogin = async (user) => {
     setUserProfile(user);
     localStorage.setItem('user_profile', JSON.stringify(user));
     
-    const savedMemories = localStorage.getItem(`user_memories_${user.uid}`);
-    setUserMemories(savedMemories ? JSON.parse(savedMemories) : []);
-    
-    const savedSessions = localStorage.getItem(`chat_sessions_${user.uid}`);
-    if (savedSessions) {
-      try { setSessions(JSON.parse(savedSessions)); } catch (e) { setSessions([]); }
+    const fsMemories = await loadUserMemories(user.uid);
+    if (fsMemories) {
+      setUserMemories(fsMemories);
     } else {
-      setSessions([]);
+      const savedMemories = localStorage.getItem(`user_memories_${user.uid}`);
+      setUserMemories(savedMemories ? JSON.parse(savedMemories) : []);
+    }
+    
+    const fsSessions = await loadChatSessions(user.uid);
+    if (fsSessions) {
+      setSessions(fsSessions);
+    } else {
+      const savedSessions = localStorage.getItem(`chat_sessions_${user.uid}`);
+      if (savedSessions) {
+        try { setSessions(JSON.parse(savedSessions)); } catch (e) { setSessions([]); }
+      } else {
+        setSessions([]);
+      }
     }
     
     const savedActive = localStorage.getItem(`active_session_id_${user.uid}`);
@@ -518,7 +558,20 @@ function App() {
 
   // --- RENDER ---
   if (!userProfile) {
-    return <Login onLogin={handleLogin} />;
+    return (
+      <AnimatePresence mode="wait">
+        <motion.div
+          key="login"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+          style={{ width: '100%', height: '100%' }}
+        >
+          <Login onLogin={handleLogin} />
+        </motion.div>
+      </AnimatePresence>
+    );
   }
 
   return (
@@ -618,9 +671,28 @@ function App() {
       {/* Main Area */}
       <div className="main-area">
         {!activeSessionId ? (
-           <Dashboard user={userProfile} onNewChat={createNewChat} />
+          <AnimatePresence mode="wait">
+            <motion.div 
+              key="dashboard"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+            >
+              <Dashboard user={userProfile} onNewChat={createNewChat} />
+            </motion.div>
+          </AnimatePresence>
         ) : (
-          <>
+          <AnimatePresence mode="wait">
+            <motion.div 
+              key="chat"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}
+            >
             {/* Header */}
             <header className="header glass-panel" style={{ borderLeft: 'none', borderRight: 'none', borderTop: 'none', borderRadius: 0 }}>
               <button className="btn-icon" onClick={() => setSidebarOpen(!sidebarOpen)} style={{ marginRight: '1rem', display: window.innerWidth > 768 ? 'none' : 'flex' }}>
@@ -664,7 +736,13 @@ function App() {
             {/* Chat Area */}
             <div className="chat-container" ref={chatContainerRef} onClick={() => setSidebarOpen(false)}>
               {messages.map((msg, idx) => (
-                <div key={idx} className={`message-row ${msg.role} animate-fade-in-up`}>
+                <motion.div 
+                  key={idx} 
+                  className={`message-row ${msg.role}`}
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                >
                   {msg.role === 'bot' && (
                     <div className="message-avatar bot-avatar">
                       <Bot size={20} className="text-accent-primary" />
@@ -688,7 +766,7 @@ function App() {
                             </div>
                           </div>
                         ) : msg.role === 'bot' ? (
-                          <Markdown>{msg.content}</Markdown>
+                          <Markdown options={{ overrides: { code: { component: CodeBlock } } }}>{msg.content}</Markdown>
                         ) : (
                           <>
                             {msg.attachments && msg.attachments.length > 0 && (
@@ -752,7 +830,7 @@ function App() {
                       )}
                     </div>
                   )}
-                </div>
+                </motion.div>
               ))}
               
               {isTyping && (
@@ -870,7 +948,8 @@ function App() {
                 Parthasarathi can make mistakes. Focus on actionable insights.
               </div>
             </div>
-          </>
+            </motion.div>
+          </AnimatePresence>
         )}
       </div>
 
