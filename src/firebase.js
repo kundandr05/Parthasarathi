@@ -11,7 +11,8 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-const isConfigured = !!firebaseConfig.apiKey;
+export const isFirebaseConfigured = !!firebaseConfig.apiKey;
+const isConfigured = isFirebaseConfigured;
 
 export const app = isConfigured ? initializeApp(firebaseConfig) : null;
 export const auth = isConfigured ? getAuth(app) : null;
