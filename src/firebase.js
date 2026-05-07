@@ -35,14 +35,7 @@ export const signInWithGoogle = async () => {
       throw error;
     }
   } else {
-    // MOCK LOGIN if Firebase is not configured yet
-    console.warn("Firebase not configured. Simulating Google Login.");
-    return new Promise(resolve => setTimeout(() => resolve({
-      uid: 'mock-user-123',
-      displayName: "KUNDAN DR",
-      email: "kundan@example.com",
-      photoURL: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-    }), 1200));
+    throw new Error("Firebase is not configured. Please add the Firebase configuration to your Environment Variables.");
   }
 };
 
@@ -103,3 +96,4 @@ export const saveUserMemories = async (uid, memories) => {
     console.error("Error saving user memories:", error);
   }
 };
+
