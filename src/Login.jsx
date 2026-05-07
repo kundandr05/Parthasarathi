@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Compass } from 'lucide-react';
+import { PeacockFeatherIcon } from './PeacockFeatherIcon';
 
 export default function Login({ onLogin }) {
   const [loadingId, setLoadingId] = useState(null);
@@ -52,7 +53,7 @@ export default function Login({ onLogin }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center', 
           marginBottom: '1.5rem', boxShadow: 'var(--shadow-glow)'
         }}>
-          <Compass size={32} className="text-accent-primary" />
+          <PeacockFeatherIcon size={32} className="text-accent-primary" />
         </div>
         
         <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.5rem', letterSpacing: '-0.02em', background: 'linear-gradient(135deg, var(--text-primary), var(--text-secondary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Choose an Account</h1>

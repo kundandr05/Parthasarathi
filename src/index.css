@@ -301,7 +301,17 @@ body.light-theme .orb {
   flex-direction: column;
   position: relative;
   z-index: 10;
-  background: transparent;
+  background: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.95)), url('./assets/bg-chariot.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+body.light-theme .main-area {
+  background: linear-gradient(rgba(248, 250, 252, 0.85), rgba(248, 250, 252, 0.95)), url('./assets/bg-chariot.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }
 
 .header {

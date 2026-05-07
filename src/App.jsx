@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Menu, Settings, User, Bot, Sparkles, Key, PlusCircle, Trash2, Mic, MicOff, Globe, Sun, Moon, MessageSquare, Clock, Edit2, LogOut, LifeBuoy, ChevronRight, Activity, BookOpen, Copy, Check, Share2, Volume2, Edit3, X as CloseIcon, Paperclip, Compass } from 'lucide-react';
+import { PeacockFeatherIcon } from './PeacockFeatherIcon';
 import { GoogleGenAI } from '@google/genai';
 import Markdown from 'markdown-to-jsx';
 import Login from './Login';
@@ -532,7 +533,7 @@ function App() {
       {/* Sidebar */}
       <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header" onClick={() => setActiveSessionId(null)} style={{ cursor: 'pointer' }}>
-          <Compass className="text-accent-primary" size={28} />
+          <PeacockFeatherIcon className="text-accent-primary" size={28} />
           <h2 style={{ fontSize: '1.25rem', fontWeight: 600, letterSpacing: '-0.02em', background: 'linear-gradient(135deg, var(--text-primary), var(--text-secondary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Parthasarathi</h2>
         </div>
         
