@@ -1,64 +1,123 @@
-import React from 'react';
-import { Sparkles, Target, Activity } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useEffect, useMemo, useState } from 'react';
+import { Sparkles, Target, Activity, Droplets, Moon, Smile, Calendar, Plus, Check, BrainCircuit, Bell } from 'lucide-react';
+import { buildPlanBlocks } from './plannerEngine';
+import { getTodayCheckin, updateTodayCheckin, weeklySummary } from './localStore';
 
-export default function Dashboard({ user, onNewChat }) {
+export default function Dashboard({ user, onNewChat, onOpenAnalytics, userProfile }) {
+  const uid = user?.uid;
+  const [today, setToday] = useState(() => (uid ? getTodayCheckin(uid) : null));
+  const [summary, setSummary] = useState(() => (uid ? weeklySummary(uid) : {}));
+
+  useEffect(() => {
+    if (!uid) return;
+    setToday(getTodayCheckin(uid));
+    setSummary(weeklySummary(uid));
+  }, [uid]);
+
   const time = new Date().getHours();
   const greeting = time < 12 ? 'Good Morning' : time < 18 ? 'Good Afternoon' : 'Good Evening';
+  const firstName = userProfile?.fullName?.split(' ')[0] || user?.displayName?.split(' ')[0] || 'there';
+  const waterGlasses = Number(today?.waterGlasses || 0);
+  const planBlocks = useMemo(() => buildPlanBlocks(userProfile, { today }), [userProfile, today]);
 
-  const quotes = [
-    "The secret of getting ahead is getting started.",
-    "Focus on being productive instead of busy.",
-    "Small steps every day yield massive results.",
-    "Your future is created by what you do today.",
-    "Discipline equals freedom.",
-    "Don't count the days, make the days count."
+  const saveToday = (patch) => {
+    if (!uid) return;
+    const next = updateTodayCheckin(uid, { ...today, ...patch });
+    setToday(next);
+    setSummary(weeklySummary(uid));
+  };
+
+  const todayGoals = [
+    today?.mainGoal || userProfile?.studyGoal || 'Complete one focused priority',
+    `Study or deep work for ${userProfile?.studyHours || 2} hours`,
+    userProfile?.fitnessGoal || 'Move your body for 20 minutes',
+    'Drink 8 glasses of water',
   ];
-  const dailyQuote = quotes[new Date().getDay() % quotes.length];
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.15 } }
-  };
-  
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
-  };
+  const productivity = today?.productivityScore || Math.min(95, Math.round(((waterGlasses / 8) * 30) + (today?.workoutCompleted ? 30 : 0) + (today?.mainGoal ? 25 : 10)));
 
   return (
-    <div className="dashboard-container" style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-      <motion.div variants={containerVariants} initial="hidden" animate="visible">
-        <motion.h1 variants={itemVariants} style={{ fontSize: '3.5rem', fontWeight: 700, marginBottom: '0.5rem', letterSpacing: '-0.03em', background: 'linear-gradient(135deg, var(--text-primary), var(--text-secondary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1.1 }}>
-          {greeting},<br/>{user?.displayName ? user.displayName.split(' ')[0] : 'there'}.
-        </motion.h1>
-        <motion.p variants={itemVariants} style={{ fontSize: '1.2rem', color: 'var(--text-secondary)', marginBottom: '4rem', fontWeight: 400 }}>"{dailyQuote}"</motion.p>
+    <div className="dashboard-container">
+      <section className="dashboard-hero">
+        <div>
+          <p className="eyebrow">Local personal intelligence</p>
+          <h1>{greeting}, {firstName}.</h1>
+          <p className="muted">Your assistant is using your profile, check-ins, goals, and habit history locally on this device.</p>
+        </div>
+        <div className="hero-actions">
+          <button onClick={onOpenAnalytics} className="action-button secondary"><Activity size={18} /> Analytics</button>
+          <button onClick={onNewChat} className="action-button primary"><Sparkles size={18} /> Ask Assistant</button>
+        </div>
+      </section>
 
-        <motion.div variants={itemVariants} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '3.5rem' }}>
-          <motion.div whileHover={{ y: -5, scale: 1.02 }} className="glass-panel" style={{ padding: '1.75rem', borderRadius: '1.5rem', border: '1px solid var(--border-highlight)', background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01))' }}>
-            <Target size={28} className="text-accent-primary" style={{ marginBottom: '1rem' }} />
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-primary)' }}>Active Goals</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>4 goals tracked this week</p>
-          </motion.div>
-          <motion.div whileHover={{ y: -5, scale: 1.02 }} className="glass-panel" style={{ padding: '1.75rem', borderRadius: '1.5rem', border: '1px solid var(--border-highlight)', background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01))' }}>
-            <Activity size={28} className="text-accent-primary" style={{ marginBottom: '1rem' }} />
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-primary)' }}>Productivity Score</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>85% - Great job staying consistent!</p>
-          </motion.div>
-        </motion.div>
+      <section className="dashboard-grid">
+        <div className="glass-panel dashboard-card span-2">
+          <div className="card-title"><Target size={22} /> Today's Goals</div>
+          <div className="goal-list">
+            {todayGoals.map((goal, idx) => (
+              <button key={goal} className="goal-row" onClick={() => saveToday({ completedTasks: Math.max(Number(today?.completedTasks || 0), idx + 1), productivityScore: Math.min(100, productivity + 8) })}>
+                <span className={Number(today?.completedTasks || 0) > idx ? 'goal-check done' : 'goal-check'}>
+                  {Number(today?.completedTasks || 0) > idx && <Check size={13} />}
+                </span>
+                <span>{goal}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
-        <motion.div variants={itemVariants}>
-          <motion.button 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="btn-icon primary" 
-            onClick={onNewChat}
-            style={{ padding: '1rem 2rem', borderRadius: '2rem', fontSize: '1.1rem', fontWeight: 600, display: 'inline-flex', gap: '0.75rem', boxShadow: 'var(--shadow-glow)', transition: 'box-shadow 0.2s' }}
-          >
-            <Sparkles size={20} /> Start a New Conversation
-          </motion.button>
-        </motion.div>
-      </motion.div>
+        <div className="glass-panel dashboard-card tracker-card">
+          <div className="card-title"><Droplets size={22} /> Water</div>
+          <div className="metric">{waterGlasses}<span>/8 glasses</span></div>
+          <div className="progress-track"><div style={{ width: `${Math.min(100, (waterGlasses / 8) * 100)}%` }} /></div>
+          <button className="mini-action" onClick={() => saveToday({ waterGlasses: Math.min(8, waterGlasses + 1), waterCompleted: waterGlasses + 1 >= 8 })}><Plus size={16} /> Add glass</button>
+        </div>
+
+        <div className="glass-panel dashboard-card tracker-card">
+          <div className="card-title"><Moon size={22} /> Sleep</div>
+          <div className="metric">{today?.sleepHours || '--'}<span>hours</span></div>
+          <input className="range-input" type="range" min="0" max="12" step="0.5" value={today?.sleepHours || 7} onChange={(e) => saveToday({ sleepHours: e.target.value })} />
+          <p className="muted small">Target: {userProfile?.sleepTime || '23:00'} to {userProfile?.wakeUpTime || '07:00'}</p>
+        </div>
+
+        <div className="glass-panel dashboard-card">
+          <div className="card-title"><Smile size={22} /> Mood</div>
+          <div className="mood-row">
+            {['Sad', 'Okay', 'Good', 'Great'].map((mood) => (
+              <button key={mood} className={today?.mood === mood ? 'mood-chip active' : 'mood-chip'} onClick={() => saveToday({ mood })}>{mood}</button>
+            ))}
+          </div>
+        </div>
+
+        <div className="glass-panel dashboard-card">
+          <div className="card-title"><BrainCircuit size={22} /> Productivity</div>
+          <div className="metric">{productivity}<span>% score</span></div>
+          <div className="progress-track"><div style={{ width: `${productivity}%` }} /></div>
+          <p className="muted small">Based on today's habits and completed tasks.</p>
+        </div>
+      </section>
+
+      <section className="glass-panel dashboard-card schedule-card">
+        <div className="card-title"><Calendar size={22} /> Smart Local Planner</div>
+        <div className="schedule-grid">
+          {planBlocks.map((block) => (
+            <div key={`${block.time}-${block.title}`} className="schedule-item">
+              <span>{block.time}</span>
+              <strong>{block.title}</strong>
+              <p>{block.detail}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="glass-panel dashboard-card reminders-card">
+        <div className="card-title"><Bell size={22} /> Daily Reminders</div>
+        <div className="reminder-list">
+          <span>Hydrate every 2 hours</span>
+          <span>Study goal: {userProfile?.studyGoal || 'Stay consistent'}</span>
+          <span>Sleep wind-down starts 1 hour before {userProfile?.sleepTime || '23:00'}</span>
+          <span>Weekly workout consistency: {summary.workoutDays || 0}/{summary.days || 7} days</span>
+        </div>
+      </section>
     </div>
   );
 }
