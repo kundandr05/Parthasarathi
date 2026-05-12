@@ -21,6 +21,7 @@ export const buildPlanBlocks = (userProfile, memory = {}) => {
   const sleep = toMinutes(userProfile?.sleepTime || '23:00');
   const studyHours = Math.max(1, Number(userProfile?.studyHours || 2));
   const today = memory.today || {};
+  const topTask = (memory.tasks || []).find((task) => !task.completed);
   const lowEnergy = Number(today.sleepHours) > 0 && Number(today.sleepHours) < 6;
   const studyBlock = Math.min(studyHours * 60, lowEnergy ? 120 : 240);
   const workout = lowEnergy ? 15 : workoutDuration(userProfile?.workoutLevel);
@@ -35,7 +36,7 @@ export const buildPlanBlocks = (userProfile, memory = {}) => {
     {
       time: `${fromMinutes(wake + 75)} - ${fromMinutes(wake + 75 + studyBlock)}`,
       title: userProfile?.occupation?.toLowerCase().includes('student') ? 'Study block' : 'Deep work block',
-      detail: `Focus on ${today.mainGoal || userProfile?.studyGoal || userProfile?.productivityGoal || 'your main goal'} with short breaks.`,
+      detail: `Focus on ${topTask?.title || today.mainGoal || userProfile?.studyGoal || userProfile?.productivityGoal || 'your main goal'} with short breaks.`,
     },
     {
       time: `${fromMinutes(wake + 75 + studyBlock + 60)} - ${fromMinutes(wake + 75 + studyBlock + 80)}`,
@@ -70,6 +71,6 @@ export const generateDailyPlan = (userProfile, memory = {}) => {
     '',
     ...blocks.map((block) => `**${block.time} - ${block.title}**\n- ${block.detail}`),
     '',
-    `**Today priority:** ${today.mainGoal || userProfile.studyGoal || userProfile.productivityGoal || 'Make one meaningful step forward.'}`,
+    `**Today priority:** ${(memory.tasks || []).find((task) => !task.completed)?.title || today.mainGoal || userProfile.studyGoal || userProfile.productivityGoal || 'Make one meaningful step forward.'}`,
   ].join('\n\n');
 };

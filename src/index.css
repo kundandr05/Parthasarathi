@@ -867,6 +867,94 @@ body.light-theme .orb {
   padding: 0.85rem;
 }
 
+.task-card {
+  margin-bottom: 1rem;
+}
+
+.task-form {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.task-form input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border-color);
+  background: rgba(0, 0, 0, 0.15);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.9rem;
+  font: inherit;
+  outline: none;
+}
+
+.task-form input:focus {
+  border-color: var(--accent-primary);
+}
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.task-row {
+  display: grid;
+  grid-template-columns: 28px 1fr 36px;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-md);
+}
+
+.task-row.completed strong {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}
+
+.task-row strong,
+.task-row span {
+  display: block;
+}
+
+.task-row strong {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.task-row span {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  margin-top: 0.15rem;
+}
+
+.task-check {
+  cursor: pointer;
+  background: transparent;
+  color: white;
+}
+
+.task-delete {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.task-delete:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
 .schedule-item span,
 .analytics-card span,
 .bar-column span,
@@ -1033,7 +1121,8 @@ body.light-theme .orb {
   .dashboard-hero,
   .analytics-header,
   .hero-actions,
-  .checkin-two {
+  .checkin-two,
+  .task-form {
     flex-direction: column;
     align-items: stretch;
   }

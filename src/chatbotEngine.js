@@ -32,6 +32,14 @@ const hydrationInsight = (memory) => {
   return 'You have not logged water today yet. Start with one glass now.';
 };
 
+const openTasks = (memory) => (memory?.tasks || []).filter((task) => !task.completed);
+
+const taskListText = (memory, limit = 5) => {
+  const tasks = openTasks(memory).slice(0, limit);
+  if (!tasks.length) return 'No active tasks are saved yet.';
+  return tasks.map((task, index) => `${index + 1}. ${task.title}${task.dueText ? ` (${task.dueText})` : ''}`).join('\n');
+};
+
 const workoutPlan = (profile, memory) => {
   const level = profile?.workoutLevel || 'Beginner';
   const tired = Number(latest(memory).sleepHours) > 0 && Number(latest(memory).sleepHours) < 6;
@@ -45,8 +53,8 @@ const workoutPlan = (profile, memory) => {
 const studyPlan = (profile, memory) => {
   const hours = Number(profile?.studyHours || 2);
   const block = hours >= 4 ? '50/10 deep work cycles' : '25/5 focus cycles';
-  const goal = latest(memory).mainGoal || profile?.studyGoal || 'your main study goal';
-  return `### Study Plan\nToday's focus is **${goal}**.\n\n- Start with the hardest topic for one ${block}\n- Write a 3-item checklist before you begin\n- Review notes for 15 minutes at the end\n- Stop when the planned ${hours} hours are done so the habit stays sustainable`;
+  const goal = openTasks(memory)[0]?.title || latest(memory).mainGoal || profile?.studyGoal || 'your main study goal';
+  return `### Study Plan\nToday's focus is **${goal}**.\n\n- Start with the hardest topic for one ${block}\n- Write a 3-item checklist before you begin\n- Review notes for 15 minutes at the end\n- Stop when the planned ${hours} hours are done so the habit stays sustainable\n\n**Active study/task queue:**\n${taskListText(memory, 4)}`;
 };
 
 const dailySummary = (profile, memory) => {
@@ -55,7 +63,8 @@ const dailySummary = (profile, memory) => {
   const sleep = today.sleepHours ? `${today.sleepHours}h` : 'not logged';
   const water = today.waterCompleted ? 'complete' : `${today.waterGlasses || 0}/8 glasses`;
   const workout = today.workoutCompleted ? 'complete' : 'not complete';
-  return `### Daily Summary\n${firstName(profile)}, here is your local memory snapshot:\n\n- Mood: ${mood}\n- Sleep: ${sleep}\n- Water: ${water}\n- Workout: ${workout}\n- Main goal: ${today.mainGoal || profile?.productivityGoal || 'not set'}\n\nBest next step: ${today.waterCompleted ? 'review your main task' : 'drink water and log it'}.`;
+  const completedTasks = (memory?.tasks || []).filter((task) => task.completed).length;
+  return `### Daily Summary\n${firstName(profile)}, here is your local memory snapshot:\n\n- Mood: ${mood}\n- Sleep: ${sleep}\n- Water: ${water}\n- Workout: ${workout}\n- Main goal: ${today.mainGoal || profile?.productivityGoal || 'not set'}\n- Tasks completed: ${completedTasks}\n\n**Next tasks:**\n${taskListText(memory, 3)}\n\nBest next step: ${today.waterCompleted ? (openTasks(memory)[0]?.title || 'review your main task') : 'drink water and log it'}.`;
 };
 
 export const processChatMessage = (input, userProfile, memory = {}) => {
@@ -72,7 +81,11 @@ export const processChatMessage = (input, userProfile, memory = {}) => {
   }
 
   if (includesAny(text, ['today goals', 'goals for today', 'my goals'])) {
-    return `### Today's Goals\n- ${today.mainGoal || userProfile?.studyGoal || 'Complete your main focus task'}\n- Drink 8 glasses of water\n- ${userProfile?.fitnessGoal || 'Move your body for 20 minutes'}\n- Sleep near ${userProfile?.sleepTime || 'your target bedtime'}`;
+    return `### Today's Goals\n- ${today.mainGoal || userProfile?.studyGoal || 'Complete your main focus task'}\n- Drink 8 glasses of water\n- ${userProfile?.fitnessGoal || 'Move your body for 20 minutes'}\n- Sleep near ${userProfile?.sleepTime || 'your target bedtime'}\n\n**Saved tasks:**\n${taskListText(memory, 5)}`;
+  }
+
+  if (includesAny(text, ['my tasks', 'task list', 'to do', 'todo', 'pending tasks'])) {
+    return `### Active Tasks\n${taskListText(memory, 8)}\n\nTell me “remind me to ...” or add tasks from the dashboard, and I will keep using them in plans and summaries.`;
   }
 
   if (includesAny(text, ['workout', 'fitness', 'exercise', 'gym'])) {

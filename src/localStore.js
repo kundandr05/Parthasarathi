@@ -66,10 +66,123 @@ export const addMemory = (uid, memory) => {
   return next;
 };
 
+export const loadTasks = (uid) => loadArray(storageKeys(uid).tasks);
+
+export const saveTasks = (uid, tasks) => saveArray(storageKeys(uid).tasks, tasks);
+
+export const addTask = (uid, title, meta = {}) => {
+  const cleaned = title.trim();
+  if (!cleaned) return loadTasks(uid);
+  const tasks = loadTasks(uid);
+  const next = [
+    {
+      id: Date.now(),
+      title: cleaned,
+      completed: false,
+      priority: meta.priority || 'normal',
+      source: meta.source || 'manual',
+      dueText: meta.dueText || '',
+      createdAt: new Date().toISOString(),
+      completedAt: '',
+    },
+    ...tasks,
+  ].slice(0, 80);
+  saveTasks(uid, next);
+  return next;
+};
+
+export const toggleTask = (uid, taskId) => {
+  const tasks = loadTasks(uid);
+  const next = tasks.map((task) => task.id === taskId
+    ? { ...task, completed: !task.completed, completedAt: task.completed ? '' : new Date().toISOString() }
+    : task);
+  saveTasks(uid, next);
+  return next;
+};
+
+export const deleteTask = (uid, taskId) => {
+  const next = loadTasks(uid).filter((task) => task.id !== taskId);
+  saveTasks(uid, next);
+  return next;
+};
+
+export const updateTask = (uid, taskId, patch) => {
+  const next = loadTasks(uid).map((task) => task.id === taskId ? { ...task, ...patch } : task);
+  saveTasks(uid, next);
+  return next;
+};
+
+export const extractSmartMemories = (message) => {
+  const text = message.trim();
+  const lower = text.toLowerCase();
+  const memories = [];
+  const tasks = [];
+
+  const goalMatch = lower.match(/\b(?:i want to|i need to|my goal is|goal is|i have to)\s+(.+)/i);
+  if (goalMatch?.[1]) {
+    const value = goalMatch[1].replace(/[.!?]$/, '').trim();
+    memories.push(`Goal noted: ${value}`);
+    tasks.push({ title: value, priority: 'high', source: 'chat-goal' });
+  }
+
+  const eventMatch = lower.match(/\b(?:exam|test|interview|meeting|deadline|submission)\b.*?(?:on|by|this|next)?\s*([a-z]+day|tomorrow|today|tonight|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)/i);
+  if (eventMatch) {
+    memories.push(`Important date: ${text}`);
+    tasks.push({ title: `Prepare for ${text}`, priority: 'high', source: 'chat-event', dueText: eventMatch[1] });
+  }
+
+  const reminderMatch = lower.match(/\b(?:remind me to|remember to|add task|todo|to-do)\s+(.+)/i);
+  if (reminderMatch?.[1]) {
+    const value = reminderMatch[1].replace(/[.!?]$/, '').trim();
+    memories.push(`Reminder requested: ${value}`);
+    tasks.push({ title: value, priority: 'normal', source: 'chat-reminder' });
+  }
+
+  const preferenceMatch = lower.match(/\b(?:i like|i prefer|i don't like|i hate|i love)\s+(.+)/i);
+  if (preferenceMatch?.[1]) {
+    memories.push(`Preference: ${text}`);
+  }
+
+  return { memories, tasks };
+};
+
+export const saveExtractedMemories = (uid, message) => {
+  const extracted = extractSmartMemories(message);
+  let memories = loadArray(storageKeys(uid).memories);
+  let tasks = loadTasks(uid);
+
+  if (extracted.memories.length) {
+    const timestamp = new Date().toISOString();
+    memories = [
+      ...memories,
+      ...extracted.memories.map((text, index) => ({ id: Date.now() + index, text, createdAt: timestamp })),
+    ].slice(-80);
+    saveArray(storageKeys(uid).memories, memories);
+  }
+
+  if (extracted.tasks.length) {
+    const timestamp = new Date().toISOString();
+    const newTasks = extracted.tasks.map((task, index) => ({
+      id: Date.now() + 100 + index,
+      title: task.title,
+      completed: false,
+      priority: task.priority,
+      source: task.source,
+      dueText: task.dueText || '',
+      createdAt: timestamp,
+      completedAt: '',
+    }));
+    tasks = [...newTasks, ...tasks].slice(0, 80);
+    saveTasks(uid, tasks);
+  }
+
+  return { memories, tasks, extracted };
+};
+
 export const loadLifeMemory = (uid) => ({
   checkins: loadCheckins(uid),
   today: getTodayCheckin(uid),
-  tasks: loadArray(storageKeys(uid).tasks),
+  tasks: loadTasks(uid),
   reminders: loadArray(storageKeys(uid).reminders),
   memories: loadArray(storageKeys(uid).memories),
 });

@@ -9,7 +9,7 @@ import DailyCheckIn from './DailyCheckIn';
 import Analytics from './Analytics';
 import { logoutUser, saveChatSessions, loadChatSessions, loadUserMemories, loadUserProfile, saveUserProfile } from './firebase';
 import { processChatMessage } from './chatbotEngine';
-import { addMemory, loadLifeMemory, upsertTodayCheckin } from './localStore';
+import { addMemory, loadLifeMemory, saveExtractedMemories, upsertTodayCheckin } from './localStore';
 import './App.css';
 
 const CodeBlock = ({ className, children }) => {
@@ -216,9 +216,14 @@ export default function App() {
     setTimeout(() => {
       const lifeMemory = loadLifeMemory(userAuth.uid);
       const responseContent = processChatMessage(userMsg.content, userProfile, { ...lifeMemory, memories: userMemories });
-      const updatedMemories = addMemory(userAuth.uid, `User asked: ${userMsg.content}`);
+      addMemory(userAuth.uid, `User asked: ${userMsg.content}`);
+      const extraction = saveExtractedMemories(userAuth.uid, userMsg.content);
+      const updatedMemories = extraction.memories;
       setUserMemories(updatedMemories);
-      const botMsg = { role: 'bot', content: responseContent, timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
+      const captureNote = extraction.extracted.tasks.length || extraction.extracted.memories.length
+        ? `\n\n_I saved ${extraction.extracted.tasks.length ? `${extraction.extracted.tasks.length} task(s)` : ''}${extraction.extracted.tasks.length && extraction.extracted.memories.length ? ' and ' : ''}${extraction.extracted.memories.length ? `${extraction.extracted.memories.length} memory note(s)` : ''} locally._`
+        : '';
+      const botMsg = { role: 'bot', content: `${responseContent}${captureNote}`, timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
       updateMessages([...newHistory, botMsg]);
       setIsTyping(false);
     }, 600);
